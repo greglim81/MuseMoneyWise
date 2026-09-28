@@ -3,7 +3,16 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeftIcon, ChartLineIcon, WalletIcon } from "lucide-react";
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { Button } from "@/components/ui/button";
+import {
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
 import {
   Card,
   CardContent,
@@ -24,6 +33,26 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { compoundGrowth, formatCurrency, sliderValue } from "@/lib/calculations";
+
+const chartConfig = {
+  balance: {
+    label: "Balance",
+    color: "var(--chart-1)",
+  },
+  contributions: {
+    label: "Contributions",
+    color: "var(--chart-2)",
+  },
+} satisfies ChartConfig;
+
+function formatCompactCurrency(value: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(value);
+}
 
 export default function CompoundInterestCalculatorPage() {
   const [initialDeposit, setInitialDeposit] = useState(10000);
@@ -208,6 +237,75 @@ export default function CompoundInterestCalculatorPage() {
             </CardContent>
           </Card>
         </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Growth chart</CardTitle>
+            <CardDescription>
+              Balance vs. total contributions over {years} years.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer config={chartConfig}>
+              <AreaChart accessibilityLayer data={schedule}>
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="year"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  tickFormatter={(value: number) => `Yr ${value}`}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  width={64}
+                  tickFormatter={(value: number) =>
+                    formatCompactCurrency(value)
+                  }
+                />
+                <ChartTooltip
+                  content={
+                    <ChartTooltipContent
+                      labelFormatter={(_, payload) =>
+                        `Year ${payload?.[0]?.payload?.year ?? ""}`
+                      }
+                      formatter={(value, name) => (
+                        <div className="flex flex-1 items-center justify-between gap-4 leading-none">
+                          <span className="text-muted-foreground">
+                            {chartConfig[name as keyof typeof chartConfig]
+                              ?.label ?? name}
+                          </span>
+                          <span className="font-mono font-medium text-foreground tabular-nums">
+                            {formatCurrency(Number(value))}
+                          </span>
+                        </div>
+                      )}
+                    />
+                  }
+                />
+                <ChartLegend content={<ChartLegendContent />} />
+                <Area
+                  dataKey="balance"
+                  type="monotone"
+                  fill="var(--color-balance)"
+                  fillOpacity={0.3}
+                  stroke="var(--color-balance)"
+                  strokeWidth={2}
+                />
+                <Area
+                  dataKey="contributions"
+                  type="monotone"
+                  fill="var(--color-contributions)"
+                  fillOpacity={0.3}
+                  stroke="var(--color-contributions)"
+                  strokeWidth={2}
+                />
+              </AreaChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
